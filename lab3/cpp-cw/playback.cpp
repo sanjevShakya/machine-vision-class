@@ -11,10 +11,10 @@ using namespace std;
 
 #define H_BIN 64
 #define S_BIN 32
-#define V_BIN 32
+#define V_BIN 16
 #define H_RS_BIT 6
 #define S_RS_BIT 5
-#define V_RS_BIT 5
+#define V_RS_BIT 4
 #define GRAY_PIXEL 200
 
 void displayFrame(cv::Mat &matFrameDisplay, int iFrame, int cFrames, HomographyData homographyData)
@@ -27,7 +27,7 @@ void displayFrame(cv::Mat &matFrameDisplay, int iFrame, int cFrames, HomographyD
     stringstream ss;
     ss << "Frame " << iFrame << "/" << cFrames;
     ss << ": hit <space> for next frame or 'q' to quit";
-    //cv::displayOverlay(VIDEO_FILE, ss.str(), 0);  // for linux + qt
+    // cv::displayOverlay(VIDEO_FILE, ss.str(), 0);  // for linux + qt
     putText(matFrameDisplay, ss.str(), Point(10, 30), FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 3);
 }
 
@@ -118,6 +118,7 @@ int main()
 {
     cv::Mat matFrameCapture;
     cv::Mat matFrameDisplay;
+    cv::Mat matHomographyDisplay;
     int cFrames;
     double aProbFloorHS[H_BIN][S_BIN][V_BIN] = {0};
     double aProbNonFloorHS[H_BIN][S_BIN][V_BIN] = {0};
@@ -137,7 +138,7 @@ int main()
 
     // Create a named window that will be used later to display each frame
     cv::namedWindow(VIDEO_FILE, (unsigned int)cv::WINDOW_NORMAL | cv::WINDOW_KEEPRATIO | cv::WINDOW_GUI_EXPANDED);
-
+    cv::namedWindow("homography_result", (unsigned int)cv::WINDOW_NORMAL | cv::WINDOW_KEEPRATIO | cv::WINDOW_GUI_EXPANDED);
     // Read homography from file
     if (!homographyData.read(HOMOGRAPHY_FILE))
     {
@@ -162,7 +163,10 @@ int main()
         segmentFrame(matFrameCapture, aProbFloorHS, aProbNonFloorHS);
         // imshow("someother-window", matFrameCapture);
         displayFrame(matFrameCapture, iFrame, cFrames, homographyData);
+        // displayFrame(matFrameCapture, iFrame, cFrames, &homographyData);
 
+        cv::warpPerspective(matFrameCapture, matHomographyDisplay, homographyData.matH, matFrameCapture.size(), INTER_LINEAR);
+        imshow("homography_result", matHomographyDisplay);
         int iKey;
         do
         {
