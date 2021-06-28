@@ -40,6 +40,24 @@ class HomographyFileUtil:
         return True
 
 
+def get_optical_flow_points(p0, p1, old_frame, new_frame, lk_params):
+    frame_gray = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
+
+    if p1 is None:
+        old_gray = cv2.cvtColor(old_frame,cv2.COLOR_BGR2GRAY)
+        p1, st, err = cv2.calcOpticalFlowPyrLK(
+    old_gray, frame_gray, p0, None, **lk_params)
+
+    if p1 is not None:
+        good_new_point = p1[st == 1]
+        good_old_point = p0[st == 1]
+        return (good_old_point, good_new_point)
+    else:
+        old_gray = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY)
+        p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **lk_params)
+        return get_optical_flow_points(p0, p1, old_frame, new_frame, lk_params)
+
+
 def main():
     key = -1
 
@@ -65,7 +83,7 @@ def main():
 
     ratio = 640.0 / width
     dim = (int(width * ratio), int(height * ratio))
-
+    
     while(key < 0):
         _, matFrameCapture = videoCapture.read()
         if matFrameCapture is None:

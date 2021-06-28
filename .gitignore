@@ -10,3 +10,10 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 build/
+*.xml
+*.zip
+**/data
+*.pdf
+**/__pycache__
+**.mp4
+**/.idea

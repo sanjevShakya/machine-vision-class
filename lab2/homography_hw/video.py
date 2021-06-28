@@ -228,7 +228,7 @@ if __name__ == '__main__':
 
         h, w, ch = matPauseScreen.shape
         matResult = cv2.warpPerspective(
-            matPauseScreen, manual_homography_matrix, (w, h), cv2.INTER_LINEAR)
+            matPauseScreen, homography_matrix, (w, h), cv2.INTER_LINEAR)
         matPauseScreen = cv2.resize(matPauseScreen, dim)
 
         cv2.imshow("Source", matPauseScreen)
