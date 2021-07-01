@@ -42,7 +42,7 @@ def parse_args():
 
     parser.add_argument('data', metavar='DIR', help='path to dataset')
     parser.add_argument('--dataset', default='voc', help='dataset type: voc, voc_aug, coco, cityscapes, mhp (default: voc)')
-    parser.add_argument('-a', '--arch', metavar='ARCH', default='fcn_resnet50',
+    parser.add_argument('-a', '--arch', metavar='ARCH', default='fcn_resnet18',
                         choices=model_names,
                         help='model architecture: ' +
                         ' | '.join(model_names) +

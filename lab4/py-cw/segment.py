@@ -3,7 +3,8 @@ import math
 import sys
 import numpy as np
 
-IMAGE_FILE = "bird.jpeg"
+IMAGE_FILE_1 = "video1_frame.png"
+IMAGE_FILE_2 = "video2_frame.png"
 ONNX_NETWORK_DEFINITION = "fcn_resnet18.onnx"
 IMAGENET_MEANS = (123.67, 116.28, 103.53)
 IMAGENET_SCALE_FACTOR = 1.0 / 255.0 / (0.224 + 0.229 + 0.225 / 3)
@@ -36,9 +37,9 @@ nClasses = len(aColorClasses)
 net = cv2.dnn.readNetFromONNX(ONNX_NETWORK_DEFINITION)
 
 # Read input image
-matFrame = cv2.imread(IMAGE_FILE)
+matFrame = cv2.imread(IMAGE_FILE_2)
 if (matFrame is None):
-    print("Cannot open image file ", IMAGE_FILE)
+    print("Cannot open image file ", IMAGE_FILE_2)
     sys.exit()
 
 # prepare blob for input image
@@ -58,15 +59,18 @@ tensorFrame = cv2.dnn.blobFromImage(
 
 net.setInput(tensorFrame)
 matScore = net.forward()
+print('matscore shape', matScore.shape)
 
 # Colorize the image and display
 matColored = matFrame.copy()
 scores = 1.0 / (1.0 + np.exp(-matScore.squeeze(0)))
 # Temporarily ignore the "background" class as it seems we get that
 classes = matScore.squeeze(0)[1:, :, :].argmax(0) + 1
+print('classes shape', classes.shape)
 color_mask = np.zeros((3, 10, 10))
 for iClass in range(nClasses):
     mask = classes == iClass
+    print(mask.shape)
     colors = np.array((aColorClasses[iClass][0] * np.ones((10, 10)),
                       aColorClasses[iClass][1] * np.ones((10, 10)),
                       aColorClasses[iClass][2] * np.ones((10, 10))))
@@ -89,6 +93,6 @@ cv2.putText(matColored, label, (10, 30),
 
 # Display
 cv2.namedWindow(WINDOW_NAME, WINDOW_FLAGS)
-cv2.imwrite('mask.png', matColored)
+cv2.imwrite('mask.png', colorizedFrame)
 # cv2.imshow(WINDOW_NAME, matFrame)
 cv2.waitKey(0)

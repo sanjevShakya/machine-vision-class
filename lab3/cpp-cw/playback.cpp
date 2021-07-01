@@ -6,7 +6,7 @@
 using namespace cv;
 using namespace std;
 
-#define VIDEO_FILE "robot.mp4"
+#define VIDEO_FILE "robot3.mp4"
 #define HOMOGRAPHY_FILE "robot-homography.yml"
 
 #define H_BIN 64
@@ -44,7 +44,7 @@ void segmentFrame(cv::Mat &matFrame, double aProbFloorHS[H_BIN][S_BIN][V_BIN], d
             double probHSVFloor = aProbFloorHS[hsv[0] >> H_RS_BIT][hsv[1] >> S_RS_BIT][hsv[2] >> V_RS_BIT];
             double probHSVgivenNonFloor = aProbNonFloorHS[hsv[0] >> H_RS_BIT][hsv[1] >> S_RS_BIT][hsv[2] >> V_RS_BIT];
 
-            if (probHSVFloor > probHSVgivenNonFloor)
+            if (probHSVFloor < probHSVgivenNonFloor)
             {
                 // cout << "here inside" << endl;
                 Vec3b &BGR = matFrame.at<Vec3b>(i, j);
@@ -81,11 +81,11 @@ void getHistogram(double aProbFloorHS[H_BIN][S_BIN][V_BIN], double aProbNonFloor
                 int Vindex = HSV[2] >> V_RS_BIT;
                 int probValue = 1;
 
-                if(iRow < matFrame.rows / 1.5) {
-                    probValue = 0;
-                } else {
-                    probValue = 1;
-                }
+                // if(iRow < matFrame.rows / 1.5) {
+                //     probValue = 0;
+                // } else {
+                //     probValue = 1;
+                // }
 
                 if (MaskRGB[0] > GRAY_PIXEL)
                 {

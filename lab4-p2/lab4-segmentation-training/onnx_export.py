@@ -23,7 +23,7 @@ if opt.model_dir:
    opt.input = os.path.join(opt.model_dir, opt.input)
 
 # set the device
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('running on device ' + str(device))
 
 # load the model checkpoint

@@ -38,7 +38,7 @@ class CameraMatrixData:
             self.tvecs = None
 
 # Defining the dimensions of checkerboard
-CHECKERBOARD = (8, 11)
+CHECKERBOARD = (6, 9)
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 # Creating vector to store vectors of 3D points for each checkerboard image
@@ -54,7 +54,7 @@ objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0],
 prev_img_shape = None
 
 # Extracting path of individual image stored in a given directory
-images = glob.glob('./images/*.jpg')
+images = glob.glob('./robot-images/*.jpg')
 for fname in images:
     img = cv2.imread(fname)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -104,7 +104,7 @@ print(rvecs)
 print("tvecs : \n")
 print(tvecs)
 
-fileStorage = cv2.FileStorage('calibrate.yaml', cv2.FileStorage_WRITE)
+fileStorage = cv2.FileStorage('calibrate_robot.yaml', cv2.FileStorage_WRITE)
 cmatrixData = CameraMatrixData(mtx, dist, rvecs, tvecs)
 cmatrixData.write(fileStorage, 'CameraMatrixData')
 
