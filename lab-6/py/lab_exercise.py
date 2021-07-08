@@ -15,6 +15,13 @@ nn_match_ratio: float = 0.8  # Nearest-neighbour matching ratio
 bb_min_inliers: int = 100  # Minimal number of inliers to draw bounding box
 stats_update_period: int = 10  # On-screen statistics are updated every 10 frames
 
+def get_resize_window(frame):
+    height, width, _ = frame.shape
+    scaleFactor = 0.4
+    resized_height = int(scaleFactor * height)
+    resized_width = int(scaleFactor * width)
+
+    return (resized_width, resized_height)
 
 def fetch_camera_calibration():
     calibrateFile = HomographyFileUtil("../calibrate_robot.yaml")
@@ -50,45 +57,25 @@ def detectComputeKeyPoints(frame, detector, camera_matrix=None, dist_coeffs=None
     return (res, desc, kps)
 
 
-def main():
-    mtx, dist, rvec, tvecs = fetch_camera_calibration()
-
-    frame1 = cv2.imread(FRAME_1)
-    frame2 = cv2.imread(FRAME_2)
-
-    akaze_window = 'akaze_window'
-    orb_window = 'orb_window'
-    epipole_frame2 = 'epipole_frame2'
-    epipole_frame1 = 'epipole_frame1'
-
-    # orb_window = 'orb_window'
-    matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
-
-    cv2.namedWindow(akaze_window, flags=cv2.WINDOW_GUI_EXPANDED)
+def showEpipolesAnd3dReconstruction(window_name, matcher, detector, calibration_mtx, dist_coeff, frame1, frame2):
+    height, width, _ = frame1.shape
+    epipole_frame2 = window_name+'_'+'epipole_frame2'
+    epipole_frame1 = window_name+'_'+'epipole_frame1'
+    
     cv2.namedWindow(epipole_frame1, flags=cv2.WINDOW_GUI_EXPANDED)
     cv2.namedWindow(epipole_frame2, flags=cv2.WINDOW_GUI_EXPANDED)
+    cv2.resizeWindow(epipole_frame1, get_resize_window(frame1))
+    cv2.resizeWindow(epipole_frame2, get_resize_window(frame1))
+    cv2.setWindowTitle(epipole_frame1, 'Epipole Lines ' + window_name)
+    cv2.setWindowTitle(epipole_frame2, 'Epipole Lines ' + window_name)
 
-    height, width, _ = frame1.shape
-    scaleFactor = 0.4
-    resized_height = int(scaleFactor * height)
-    resized_width = int(scaleFactor * width)
-    cv2.resizeWindow(akaze_window, (resized_width, resized_height))
-    cv2.resizeWindow(epipole_frame1, (resized_width, resized_height))
-    cv2.resizeWindow(epipole_frame2, (resized_width, resized_height))
-
-    # cv2.namedWindow(orb_window)
-
-    akaze = cv2.AKAZE_create()
-    akaze.setThreshold(akaze_thresh)
-    orb = cv2.ORB_create()
-
-    res_akaze_frame1, desc_akaze_frame1, key_points_frame1 = detectComputeKeyPoints(
-        frame1, akaze, mtx, dist, undistort=True)
-    res_akaze_frame2, desc_akaze_frame2, key_points_frame2 = detectComputeKeyPoints(
-        frame2, akaze, mtx, dist, undistort=True)
+    _, desc, key_points_frame1 = detectComputeKeyPoints(
+        frame1, detector, calibration_mtx, dist_coeff, undistort=True)
+    _, desc_akaze_frame2, key_points_frame2 = detectComputeKeyPoints(
+        frame2, detector, calibration_mtx, dist_coeff, undistort=True)
     # res_orb = detectComputeKeyPoints(frame2, orb)
 
-    matches = matcher.knnMatch(desc_akaze_frame1, desc_akaze_frame2, k=2)
+    matches = matcher.knnMatch(desc, desc_akaze_frame2, k=2)
     matched1 = []
     matched2 = []
     matched1_kps = []
@@ -142,7 +129,7 @@ def main():
                           inlier_matches, None, matchColor=(255, 0, 0), singlePointColor=(255, 0, 0))
 
     essential_mtx, mask = cv2.findEssentialMat(
-        matched1, matched2, mtx, method=cv2.RANSAC, threshold=1)
+        matched1, matched2, calibration_mtx, method=cv2.RANSAC, threshold=1)
 
     matchesMask = []
     j = 0
@@ -155,8 +142,8 @@ def main():
             j += 1
         else:
             matchesMask.append((0, 0))
-    cv2.imshow(akaze_window, res)
-    print(inliers_frame1[0].shape)
+    cv2.imshow(window_name, res)
+    # print(inliers_frame1[0].shape)
 
     def epipolar_line(x, x_prime, F):
         x = np.array(x).T
@@ -205,12 +192,8 @@ def main():
         draw_line_frame(epipole_frame2, frame2,
                         frame2_l)
 
-    print('inlier frame 1 shape', inliers_frame1.shape)
-    print('inlier frame 1 shape', inliers_frame2.shape)
     newPts1, newPts2 = cv2.correctMatches(F, matched1.reshape(
         1, len(matched1), 2), matched2.reshape(1, len(matched2), 2))
-    print(newPts1.shape)
-    print(newPts2.shape)
 
     points, R_est, t_est, mask_pose = cv2.recoverPose(
         essential_mtx, inliers_frame1, inliers_frame2)
@@ -222,7 +205,7 @@ def main():
     pp_1 = []
     pp_2 = []
     indices = []
-    print('inliers_frame1 0', inliers_frame1[0])
+    # print('inliers_frame1 0', inliers_frame1[0])
     for i in range(len(inliers_frame1)):
         p1 = inliers_frame1[i][0]
         p2 = inliers_frame2[i][0]
@@ -235,24 +218,49 @@ def main():
 
     three_d_points = cv2.triangulatePoints(P1, P2, pts1[:2], pts2[:2])
     three_d_points /= three_d_points[3]
-    print(three_d_points)
-    print(three_d_points.shape)
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     x = three_d_points[0]
-    print(x)
     ax.scatter(three_d_points[0], three_d_points[1],
                three_d_points[2], marker='o')
 
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
+    ax.set_title(window_name)
 
-    cv2.waitKey(0)
-    plt.savefig('3d_reconstruction.png')
+    plt.savefig('3d_reconstruction_' + window_name+'.png')
     plt.show()
 
+def main():
+    mtx, dist, rvec, tvecs = fetch_camera_calibration()
+
+    frame1 = cv2.imread(FRAME_1)
+    frame2 = cv2.imread(FRAME_2)
+
+    akaze_window = 'akaze_window'
+    orb_window = 'orb_window'
+
+    # orb_window = 'orb_window'
+    matcher = cv2.DescriptorMatcher_create("BruteForce-Hamming")
+
+    cv2.namedWindow(akaze_window, flags=cv2.WINDOW_GUI_EXPANDED)
+    cv2.resizeWindow(akaze_window, get_resize_window(frame1))
+    cv2.namedWindow(orb_window, flags=cv2.WINDOW_GUI_EXPANDED)
+    cv2.resizeWindow(orb_window, get_resize_window(frame1))
+    cv2.setWindowTitle(akaze_window, 'Akaze')
+    cv2.setWindowTitle(orb_window, 'Orb')
+
+    # cv2.namedWindow(orb_window)
+
+    akaze = cv2.AKAZE_create()
+    akaze.setThreshold(akaze_thresh)
+    orb = cv2.ORB_create()
+
+    showEpipolesAnd3dReconstruction(akaze_window, matcher, akaze, mtx, dist, frame1, frame2)
+    showEpipolesAnd3dReconstruction(orb_window, matcher, orb, mtx, dist, frame1, frame2)
+    cv2.waitKey(0)
 
 if __name__ == '__main__':
     main()
